@@ -6,3 +6,7 @@ pyyaml
 python-dotenv
 matplotlib
 seaborn
+statsmodels
+imbalanced-learn
+xgboost
+lightgbm
