@@ -1,5 +1,5 @@
 import os
-import pandas
+import pandas as pd
 from src.logger import get_logger
 from src.custom_exception import CustomException
 import yaml
@@ -19,3 +19,14 @@ def read_yaml(file_path):
     except Exception as e:
         logger.error("Error while reading YAML file ")
         raise CustomException("Failed to read YAML file ",e)
+    
+
+
+def load_data(path):
+    try:
+        logger.info("Loading Data")
+        return pd.read_csv(path)
+    
+    except Exception as e:
+        logger.error(f"Error loading the data {e}")
+        raise CustomException("Failed to load data", e)
