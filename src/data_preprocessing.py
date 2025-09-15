@@ -14,6 +14,7 @@ from imblearn.over_sampling import SMOTE
 logger = get_logger(__name__)
 
 class DataProcessor:
+
     def __init__(self, train_path, test_path, processed_dir, config_path):
         self.train_path = train_path
         self.test_path = test_path
@@ -85,3 +86,87 @@ class DataProcessor:
         except Exception as e:
             logger.error(f"Error During data balancing {e}")
             raise CustomException("Error while balancing data.", e)
+        
+
+    
+    def select_features(self, df : pd.DataFrame):
+        try:
+            logger.info("Starting Our Feature Selection.")
+
+            X = df.drop(columns = 'booking_status')
+            y = df['booking_status']
+
+            model = RandomForestClassifier(random_state = 42)
+            model.fit(X,y)
+
+            feature_importance = model.feature_importances_
+            feature_importance_df = pd.DataFrame({
+                'feature' : X.columns,
+                'importance' : feature_importance
+            })
+            top_important_features_df = feature_importance_df.sort_values(by = "importance", ascending = False)
+
+            num_features_to_select = self.config['data_processing']["no_of_features"]
+
+            top_10_features = top_important_features_df['feature'].head(num_features_to_select).values
+
+            logger.info(f"Features Selected : {top_10_features}")
+
+            top_10_df = df[top_10_features.tolist() + ['booking_status']]
+
+            logger.info("Feature Selection Completed Successfully.")
+
+            return top_10_df
+        
+        except Exception as e:
+            logger.error(f"Error During feature selection {e}")
+            raise CustomException("Error while feature selection.", e)
+        
+
+
+    def save_data(self, df : pd.DataFrame, file_path):
+        try:
+            logger.info("Svaing Our data into processed folder.")
+
+            df.to_csv(file_path, index = False)
+
+            logger.info(f"Data Saved successfully to {file_path}")
+
+        except Exception as e:
+            logger.error(f"Error During Saving Data {e}")
+            raise CustomException("Error while Saving Data.", e)
+        
+
+
+    def process(self):
+        try:
+            logger.info("Loading the data from raw dir.")
+
+            train_df = load_data(self.train_path)
+            test_df = load_data(self.test_path)
+
+            train_df = self.data_processing(train_df)
+            test_df = self.data_processing(test_df)
+
+            tarin_df = self.balance_data(train_df)
+            test_df = self.balance_data(test_df)
+
+            train_df = self.select_features(tarin_df)
+
+            test_df = test_df[train_df.columns]
+
+            self.save_data(train_df, PROCESSED_TRAIN_DATA_PATH)
+            self.save_data(test_df, PROCESSED_TEST_DATA_PATH)
+
+            logger.info("Data Processing completed successfully.")
+        
+        except Exception as e:
+            logger.error(f"Error During processing data pipeline {e}")
+            raise CustomException("Error while Processing Data Pipeline.", e)
+        
+
+
+if __name__ == "__main__":
+
+    processor = DataProcessor(TRAIN_FILE_PATH, TEST_FILE_PATH, PROCESSED_DIR, CONFIG_PATH)
+    processor.process()
